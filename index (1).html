@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#111111" />
+  <title>Alertas PUCV</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #111; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+    .app { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; min-height: 100vh; }
+    .header { padding: 20px 16px 0; text-align: center; }
+    .header .icon { font-size: 36px; }
+    .header h1 { font-size: 17px; margin: 4px 0 2px; letter-spacing: 1px; text-transform: uppercase; }
+    .header p { color: #777; font-size: 12px; }
+    .tabs { display: flex; margin: 14px 16px 0; background: #222; border-radius: 10px; padding: 4px; gap: 4px; }
+    .tab { flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; background: transparent; color: #777; transition: background 0.2s, color 0.2s; }
+    .tab.active { background: #333; color: #fff; }
+    .content { padding: 16px; flex: 1; }
+    .section { background: #1e1e1e; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    .section-title { font-weight: bold; font-size: 14px; margin: 0 0 10px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .emergency-btn { background: #1e1e1e; border-radius: 12px; padding: 16px 8px; cursor: pointer; text-align: center; transition: transform 0.1s; }
+    .emergency-btn:active { transform: scale(0.97); }
+    .emergency-btn .eicon { font-size: 28px; }
+    .emergency-btn .elabel { color: #fff; font-size: 12px; font-weight: bold; margin-top: 6px; }
+    .loc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .loc-btn { color: #fff; border: none; border-radius: 8px; padding: 9px 6px; font-size: 11px; cursor: pointer; transition: background 0.15s; }
+    .tip { font-size: 12px; color: #ddd; margin: 5px 0; }
+    .main-btn { width: 100%; padding: 18px; color: #fff; font-size: 16px; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; letter-spacing: 1px; margin-bottom: 6px; }
+    .sub-btn { width: 100%; padding: 12px; background: #2a2a2a; color: #888; font-size: 13px; border: none; border-radius: 10px; cursor: pointer; margin-top: 8px; }
+    .back-btn { background: #333; border: none; color: #aaa; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
+    .row-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .msg-preview { background: #111; border-radius: 10px; padding: 14px; margin-bottom: 16px; white-space: pre-wrap; font-size: 12px; color: #eee; line-height: 1.7; font-family: monospace; }
+    input[type=text] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 13px; margin-top: 8px; }
+    .copy-btn { width: 100%; padding: 14px; background: #1565c0; color: #fff; font-weight: bold; font-size: 15px; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 10px; transition: background 0.2s; }
+    .copy-btn.copied { background: #4caf50; }
+    .emergency-numbers { background: #0a1a0a; border-radius: 10px; padding: 14px; margin-top: 16px; }
+    .emergency-numbers p { font-size: 13px; color: #ddd; margin: 4px 0; }
+    .success-screen { text-align: center; }
+    .success-icon { font-size: 56px; margin-bottom: 8px; }
+    .hint { text-align: center; font-size: 11px; color: #555; }
+    .step-confirm { background: #1e1e1e; border-radius: 14px; padding: 18px; }
+    .webhook-ok { color: #4caf50; font-size: 12px; margin-bottom: 10px; text-align: center; }
+    .webhook-na { color: #888; font-size: 12px; margin-bottom: 10px; text-align: center; }
+    .config-step { font-size: 12px; color: #ccc; margin: 6px 0; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="icon">🏫</div>
+    <h1>Sistema de Alertas</h1>
+    <p>Emergencias Universitarias — PUCV</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('alert')">🚨 Alertas</button>
+    <button class="tab" onclick="showTab('config')">⚙️ Configuración</button>
+  </div>
+
+  <div class="content">
+    <!-- TAB ALERTAS -->
+    <div id="tab-alert">
+
+      <!-- PASO 1: Seleccionar emergencia -->
+      <div id="step-select">
+        <p style="color:#aaa;font-size:13px;margin-bottom:12px;">Selecciona el tipo de emergencia:</p>
+        <div class="grid2" id="emergency-grid"></div>
+      </div>
+
+      <!-- PASO 2: Seleccionar ubicación -->
+      <div id="step-location" style="display:none;">
+        <div class="row-header">
+          <button class="back-btn" onclick="goBack('select')">← Volver</button>
+          <span id="emergency-title-icon" style="font-size:20px;"></span>
+          <span id="emergency-title-label" style="font-weight:bold;"></span>
+        </div>
+        <div class="section">
+          <p class="section-title" style="color:#ffcc00;">📍 ¿Dónde ocurre?</p>
+          <div class="loc-grid" id="loc-grid"></div>
+          <input type="text" id="custom-loc" placeholder="Describe tu ubicación..." style="display:none;" oninput="updateCustomLoc(this.value)" />
+        </div>
+        <div class="section" id="tips-box">
+          <p class="section-title" style="color:#4fc3f7;">🛡️ Instrucciones</p>
+          <div id="tips-list"></div>
+        </div>
+        <button class="main-btn" id="send-btn" onclick="goToConfirm()"></button>
+        <p class="hint">Se pedirá confirmación antes de enviar</p>
+      </div>
+
+      <!-- PASO 3: Confirmar -->
+      <div id="step-confirm" style="display:none;">
+        <div class="step-confirm">
+          <p style="color:#ffcc00;font-weight:bold;font-size:15px;text-align:center;margin-bottom:14px;">⚠️ ¿Confirmas el envío?</p>
+          <div class="msg-preview" id="confirm-msg"></div>
+          <div id="webhook-status-label"></div>
+          <button class="main-btn" id="confirm-btn" onclick="sendAlert()" style="background:#4caf50;">✅ Confirmar alerta</button>
+          <button class="sub-btn" onclick="goBack('location')">← Cancelar</button>
+        </div>
+      </div>
+
+      <!-- PASO 4: Enviado -->
+      <div id="step-sent" style="display:none;">
+        <div class="success-screen">
+          <div class="success-icon">✅</div>
+          <h2 style="color:#4caf50;margin-bottom:4px;font-size:18px;">Alerta enviada</h2>
+          <p id="webhook-result" style="font-size:13px;margin-bottom:14px;"></p>
+          <div class="msg-preview" id="sent-msg"></div>
+          <button class="copy-btn" id="copy-btn" onclick="copyMsg()">📋 Copiar mensaje</button>
+          <button class="sub-btn" onclick="resetAll()">🔄 Nueva alerta</button>
+          <div class="emergency-numbers">
+            <p style="color:#4caf50;font-weight:bold;font-size:13px;margin-bottom:8px;">📞 Emergencias Chile</p>
+            <p>🚔 Carabineros: <strong>133</strong></p>
+            <p>🚑 SAMU: <strong>131</strong></p>
+            <p>🚒 Bomberos: <strong>132</strong></p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB CONFIGURACIÓN -->
+    <div id="tab-config" style="display:none;">
+      <div class="section">
+        <p class="section-title" style="color:#ffcc00;">🔗 Webhook URL (Make.com)</p>
+        <p style="color:#888;font-size:12px;margin-bottom:8px;">Pega aquí la URL de tu webhook de Make.com para enviar alertas automáticas.</p>
+        <input type="text" id="webhook-input" placeholder="https://hook.make.com/..." oninput="saveWebhook(this.value)" />
+        <p id="webhook-ok" style="color:#4caf50;font-size:12px;margin-top:8px;display:none;">✅ Webhook configurado</p>
+      </div>
+      <div class="section">
+        <p class="section-title" style="color:#4fc3f7;">📋 Cómo configurar Make.com</p>
+        <p class="config-step">1. Crea una cuenta en make.com</p>
+        <p class="config-step">2. Crea un nuevo escenario</p>
+        <p class="config-step">3. Agrega módulo: Webhooks → Custom Webhook</p>
+        <p class="config-step">4. Copia la URL generada y pégala arriba</p>
+        <p class="config-step">5. Agrega módulo: Twilio → Send SMS</p>
+        <p class="config-step">6. Conecta tu cuenta Twilio y activa el escenario</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const EMERGENCIES = [
+  { id:"shooter", icon:"🚨", label:"Tirador Activo", bg:"#ff3b3b",
+    tips:["🔒 Enciérrate y bloquea la puerta","💡 Apaga las luces","📵 Silencia tu teléfono","🙈 Aléjate de ventanas y puertas","🤫 Permanece en silencio","🚪 NO abras hasta que llegue la policía"],
+    msg:(l,t,d)=>`🚨 ALERTA — TIRADOR ACTIVO 🚨\nUNIVERSIDAD EN EMERGENCIA\n📍 Ubicación: ${l}\n🕐 ${t} - ${d}\n⚠️ REFUGÍATE DE INMEDIATO\n🔒 Enciérrate, silencia el teléfono\n📞 Llama al 133 (Carabineros)` },
+  { id:"fire", icon:"🔥", label:"Incendio", bg:"#ff6d00",
+    tips:["🚪 Evacúa por las salidas de emergencia","🙅 NO uses ascensores","👇 Agáchate si hay humo","🚿 Cierra puertas para contener el fuego","📍 Reúnete en el punto de encuentro","🔙 NO vuelvas al edificio"],
+    msg:(l,t,d)=>`🔥 ALERTA — INCENDIO 🔥\nUNIVERSIDAD EN EMERGENCIA\n📍 Ubicación: ${l}\n🕐 ${t} - ${d}\n⚠️ EVACÚA POR SALIDAS DE EMERGENCIA\n🙅 NO uses ascensores\n📞 Llama al 132 (Bomberos)` },
+  { id:"medical", icon:"🏥", label:"Emergencia Médica", bg:"#1e88e5",
+    tips:["📞 Llama al 131 (SAMU) inmediatamente","🧍 No muevas a la persona lesionada","🩹 Si sabes RCP, aplícalo si es necesario","🚪 Despeja el área alrededor","📍 Indica la ubicación exacta al operador","⏳ Permanece con la persona hasta que llegue ayuda"],
+    msg:(l,t,d)=>`🏥 ALERTA — EMERGENCIA MÉDICA 🏥\nUNIVERSIDAD — SE REQUIERE AYUDA\n📍 Ubicación: ${l}\n🕐 ${t} - ${d}\n⚠️ SE NECESITA ASISTENCIA MÉDICA URGENTE\n📞 Llama al 131 (SAMU)` },
+  { id:"bomb", icon:"💣", label:"Amenaza de Bomba", bg:"#7b1fa2",
+    tips:["🚶 Evacúa el edificio de inmediato","🔍 NO toques objetos sospechosos","📵 Evita usar el teléfono cerca del objeto","🚪 Deja puertas y ventanas abiertas","📍 Reúnete lejos del edificio","🚔 Espera instrucciones de Carabineros"],
+    msg:(l,t,d)=>`💣 ALERTA — AMENAZA DE BOMBA 💣\nUNIVERSIDAD EN EMERGENCIA\n📍 Ubicación: ${l}\n🕐 ${t} - ${d}\n⚠️ EVACÚA EL EDIFICIO INMEDIATAMENTE\n🔍 NO toques objetos sospechosos\n📞 Llama al 133 (Carabineros)` },
+  { id:"evacuation", icon:"🌊", label:"Evacuación General", bg:"#00897b",
+    tips:["🚶 Evacúa de forma ordenada y calmada","🙅 NO corras ni empujes","📍 Dirígete al punto de encuentro","🧍 Ayuda a personas con movilidad reducida","📵 Mantén las líneas de emergencia libres","✅ Espera instrucciones del personal"],
+    msg:(l,t,d)=>`🌊 ALERTA — EVACUACIÓN GENERAL 🌊\nUNIVERSIDAD EN EMERGENCIA\n📍 Ubicación: ${l}\n🕐 ${t} - ${d}\n⚠️ EVACÚA DE FORMA ORDENADA\n📍 Ve al punto de encuentro designado\n📞 Llama al 133 (Carabineros)` },
+];
+
+const LOCATIONS = ["Edificio A — Aulas","Edificio B — Laboratorios","Biblioteca","Cafetería","Gimnasio","Estacionamiento","Administración","Otra ubicación"];
+
+let selectedId = null, selectedLoc = "", customLoc = "", webhookUrl = "";
+
+// Render emergency buttons
+const grid = document.getElementById('emergency-grid');
+EMERGENCIES.forEach(e => {
+  const btn = document.createElement('button');
+  btn.className = 'emergency-btn';
+  btn.style.border = `2px solid ${e.bg}`;
+  btn.innerHTML = `<div class="eicon">${e.icon}</div><div class="elabel">${e.label}</div>`;
+  btn.onclick = () => selectEmergency(e.id);
+  grid.appendChild(btn);
+});
+
+// Render location buttons
+const locGrid = document.getElementById('loc-grid');
+LOCATIONS.forEach(loc => {
+  const btn = document.createElement('button');
+  btn.className = 'loc-btn';
+  btn.id = 'loc-' + loc.replace(/\s/g,'_');
+  btn.style.background = '#2a2a2a';
+  btn.textContent = loc;
+  btn.onclick = () => selectLocation(loc, btn);
+  locGrid.appendChild(btn);
+});
+
+function selectEmergency(id) {
+  selectedId = id;
+  selectedLoc = "";
+  customLoc = "";
+  const e = EMERGENCIES.find(x => x.id === id);
+  document.getElementById('emergency-title-icon').textContent = e.icon;
+  document.getElementById('emergency-title-label').textContent = e.label;
+  document.getElementById('emergency-title-label').style.color = e.bg;
+  document.getElementById('send-btn').textContent = e.icon + ' ENVIAR ALERTA — ' + e.label.toUpperCase();
+  document.getElementById('send-btn').style.background = e.bg;
+  // Reset loc buttons
+  document.querySelectorAll('.loc-btn').forEach(b => b.style.background = '#2a2a2a');
+  document.getElementById('custom-loc').style.display = 'none';
+  // Tips
+  const tipsList = document.getElementById('tips-list');
+  tipsList.innerHTML = e.tips.map(t => `<p class="tip">${t}</p>`).join('');
+  showStep('location');
+}
+
+function selectLocation(loc, btn) {
+  selectedLoc = loc;
+  document.querySelectorAll('.loc-btn').forEach(b => b.style.background = '#2a2a2a');
+  const e = EMERGENCIES.find(x => x.id === selectedId);
+  btn.style.background = e ? e.bg : '#555';
+  const ci = document.getElementById('custom-loc');
+  ci.style.display = loc === 'Otra ubicación' ? 'block' : 'none';
+  if (loc !== 'Otra ubicación') customLoc = '';
+}
+
+function updateCustomLoc(v) { customLoc = v; }
+
+function saveWebhook(v) {
+  webhookUrl = v;
+  document.getElementById('webhook-ok').style.display = v ? 'block' : 'none';
+}
+
+function getMsg() {
+  const e = EMERGENCIES.find(x => x.id === selectedId);
+  const loc = selectedLoc === 'Otra ubicación' ? (customLoc || 'No especificada') : (selectedLoc || 'No especificada');
+  const now = new Date();
+  const t = now.toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit'});
+  const d = now.toLocaleDateString('es-CL');
+  return e ? e.msg(loc, t, d) : '';
+}
+
+function goToConfirm() {
+  const msg = getMsg();
+  document.getElementById('confirm-msg').textContent = msg;
+  const wsl = document.getElementById('webhook-status-label');
+  wsl.innerHTML = webhookUrl
+    ? '<p class="webhook-ok">📡 Se enviará automáticamente vía Make.com</p>'
+    : '<p class="webhook-na">📋 Sin webhook — podrás copiar el mensaje</p>';
+  showStep('confirm');
+}
+
+async function sendAlert() {
+  const msg = getMsg();
+  document.getElementById('sent-msg').textContent = msg;
+  if (webhookUrl) {
+    try {
+      const e = EMERGENCIES.find(x => x.id === selectedId);
+      const loc = selectedLoc === 'Otra ubicación' ? customLoc : selectedLoc;
+      const now = new Date();
+      await fetch(webhookUrl, {
+        method:'POST', headers:{'Content-Type':'application/json'}, mode:'no-cors',
+        body: JSON.stringify({ emergencia: e.label, ubicacion: loc || 'No especificada',
+          hora: now.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}),
+          fecha: now.toLocaleDateString('es-CL'), mensaje: msg })
+      });
+      document.getElementById('webhook-result').style.color = '#4caf50';
+      document.getElementById('webhook-result').textContent = '📡 Enviado a Make.com correctamente';
+    } catch {
+      document.getElementById('webhook-result').style.color = '#ff5252';
+      document.getElementById('webhook-result').textContent = '⚠️ Error con el webhook — copia el mensaje manualmente';
+    }
+  } else {
+    document.getElementById('webhook-result').style.color = '#aaa';
+    document.getElementById('webhook-result').textContent = 'Copia el mensaje y envíalo manualmente';
+  }
+  showStep('sent');
+}
+
+function copyMsg() {
+  const msg = document.getElementById('sent-msg').textContent;
+  navigator.clipboard.writeText(msg);
+  const btn = document.getElementById('copy-btn');
+  btn.textContent = '✅ ¡Copiado!';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = '📋 Copiar mensaje'; btn.classList.remove('copied'); }, 2000);
+}
+
+function resetAll() {
+  selectedId = null; selectedLoc = ''; customLoc = '';
+  showStep('select');
+}
+
+function showStep(step) {
+  ['select','location','confirm','sent'].forEach(s =>
+    document.getElementById('step-'+s).style.display = s === step ? 'block' : 'none'
+  );
+}
+
+function goBack(step) { showStep(step); }
+
+function showTab(tab) {
+  document.getElementById('tab-alert').style.display = tab === 'alert' ? 'block' : 'none';
+  document.getElementById('tab-config').style.display = tab === 'config' ? 'block' : 'none';
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0 && tab==='alert')||(i===1 && tab==='config')));
+}
+</script>
+</body>
+</html>
